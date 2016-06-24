@@ -79,11 +79,3 @@ decNat' ::    SNat m
 decNat' SZ     _      a _ = a
 decNat' (SS _) SZ     _ a = a
 decNat' (SS m) (SS n) a b = decNat' m n a b
-
-data Test :: * where
-
-    Test :: (m <=? n) ~ 'True => SNat m -> SNat n -> Test
-
-instance Show Test where
-
-    show (Test m n) = "(Test " ++ show m ++ " " ++ show n ++ ")"
