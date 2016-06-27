@@ -3,35 +3,41 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE EmptyCase #-}
 
 module Data.Nat
     ( Nat(..)
-    , type (??)
     , type (<=?)
+    , type (<=)
+    , type Min
     , SNat(..)
-    , SNAT
+    , SNAT(..)
     , toNatural
     , toSNAT
-    , decNat
-    , decNat'
+    , leqDec
+    , leqMin
+    , minSymm
     ) where
 
+import Data.Constraint
 import Numeric.Natural
 
 data Nat = Z | S Nat deriving (Show, Read, Eq)
 
-infix 4 ??, <=?
-
-type family (m :: Nat) ?? (n :: Nat) :: Ordering where
-    'Z   ?? 'Z   = 'EQ
-    'Z   ?? _    = 'LT
-    _    ?? 'Z   = 'GT
-    'S m ?? 'S n = m ?? n
+infix 4 <=, <=?
 
 type family (m :: Nat) <=? (n :: Nat) :: Bool where
     'Z   <=? _    = 'True
     'S _ <=? 'Z   = 'False
     'S m <=? 'S n = m <=? n
+
+type (m :: Nat) <= (n :: Nat) = (m <=? n) ~ 'True
+
+type family Min (m :: Nat) (n :: Nat) :: Nat where
+    Min 'Z     _      = 'Z
+    Min _      'Z     = 'Z
+    Min ('S m) ('S n) = 'S (Min m n)
 
 data SNat :: Nat -> * where
 
@@ -60,22 +66,16 @@ instance Show SNAT where
 
     show (SNAT n) = show n
 
-decNat ::    SNat m
-          -> SNat n
-          -> (((m ?? n) ~ 'LT) => a)
-          -> (((m ?? n) ~ 'EQ) => a)
-          -> (((m ?? n) ~ 'GT) => a)
-          -> a
-decNat SZ     SZ     _ a _ = a
-decNat SZ     (SS _) a _ _ = a
-decNat (SS _) SZ     _ _ a = a
-decNat (SS m) (SS n) a b c = decNat m n a b c
+leqDec :: SNat m -> SNat n -> Either (Dict (m <= n)) (Dict (n <= m))
+leqDec SZ     _      = Left Dict
+leqDec _      SZ     = Right Dict
+leqDec (SS m) (SS n) = leqDec m n
 
-decNat' ::    SNat m
-           -> SNat n
-           -> (((m <=? n) ~ 'True) => a)
-           -> (((n <=? m) ~ 'True) => a)
-           -> a
-decNat' SZ     _      a _ = a
-decNat' (SS _) SZ     _ a = a
-decNat' (SS m) (SS n) a b = decNat' m n a b
+leqMin :: (m <= n) => SNat m -> SNat n -> Dict (Min m n ~ m)
+leqMin SZ _ = Dict
+leqMin (SS m) (SS n) = case leqMin m n of Dict -> Dict
+
+minSymm :: SNat m -> SNat n -> Dict (Min m n ~ Min n m)
+minSymm SZ     _      = Dict
+minSymm _      SZ     = Dict
+minSymm (SS m) (SS n) = case minSymm m n of Dict -> Dict
