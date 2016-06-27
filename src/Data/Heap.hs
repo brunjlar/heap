@@ -102,16 +102,16 @@ merge :: Heap'' p a -> Heap'' q a -> Heap'' (Min' p q) a
 merge (Heap'' Empty)                h'                           = h'
 merge h                             (Heap'' Empty)               = h
 merge h@(Heap'' (Tree p _ x ys zs)) h'@(Heap'' (Tree q _ _ _ _)) =
-    case leqDec p q of
-        Right Dict -> case minSymm p q of Dict -> merge h' h 
-        Left Dict  -> let h'' = merge (Heap'' zs) h'
-                      in  case h'' of
-                        Heap'' Empty                 -> error "impossible branch"
-                        Heap'' h'''@(Tree _ r _ _ _) ->
-                            using (leqMin p q `combine` leqMin'' p (priority zs) (Just' q)) $
-                                case leqDec r (rank ys) of
-                                    Left Dict -> Heap'' $ Tree p (SS r) x ys h'''
-                                    Right Dict -> Heap'' $ Tree p (SS $ rank ys) x h''' ys
+    alternative (leqDec q p)
+        (using (minSymm p q) $ merge h' h) $
+        let h'' = merge (Heap'' zs) h'
+        in  case h'' of
+            Heap'' Empty                 -> error "impossible branch"
+            Heap'' h'''@(Tree _ r _ _ _) ->
+                using (leqMin p q `combine` leqMin'' p (priority zs) (Just' q)) $
+                    alternative (leqDec r $ rank ys)
+                        (Heap'' $ Tree p (SS r) x ys h''')
+                        (Heap'' $ Tree p (SS $ rank ys) x h''' ys)
 
 instance Monoid (Heap a) where
 
