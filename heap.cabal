@@ -18,6 +18,8 @@ library
   exposed-modules:     Data.Heap
                      , Data.Logic
                      , Data.Nat
+                     , Data.Nat.Binary
+                     , Data.Nat.Peano
   build-depends:       base >= 4.7 && < 5
                      , constraints
   default-language:    Haskell2010
