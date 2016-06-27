@@ -18,12 +18,10 @@ module Data.Heap
     ) where
 
 import Data.Constraint
+import Data.Logic
 import Data.Monoid     ((<>))
 import Data.Nat
 import Numeric.Natural
-
-c :: Dict a -> Dict b -> Dict (a, b)
-c Dict Dict = Dict
 
 data SNat' :: Maybe Nat -> * where
 
@@ -34,8 +32,8 @@ data SNat' :: Maybe Nat -> * where
 infix 4 <=??, <=.
 
 type family (m :: Nat) <=?? (n :: Maybe Nat) :: Bool where
-    _ <=?? 'Nothing  = 'True
-    m <=?? ('Just n) = m <=? n
+    _ <=?? 'Nothing = 'True
+    m <=?? 'Just n  = m <=? n
 
 type (m :: Nat) <=. (n :: Maybe Nat) = (m <=?? n) ~ 'True 
 
@@ -110,8 +108,8 @@ merge h@(Heap'' (Tree p _ x ys zs)) h'@(Heap'' (Tree q _ _ _ _)) =
                       in  case h'' of
                         Heap'' Empty                 -> error "impossible branch"
                         Heap'' h'''@(Tree _ r _ _ _) ->
-                            case (leqMin p q) `c` (leqMin'' p (priority zs) (Just' q)) of
-                                Dict -> case leqDec r (rank ys) of
+                            using (leqMin p q `combine` leqMin'' p (priority zs) (Just' q)) $
+                                case leqDec r (rank ys) of
                                     Left Dict -> Heap'' $ Tree p (SS r) x ys h'''
                                     Right Dict -> Heap'' $ Tree p (SS $ rank ys) x h''' ys
 
@@ -136,7 +134,7 @@ peek h = pop h >>= \(p, x, _) -> return (p, x)
 
 instance Foldable Heap where
 
-    foldMap f h = go mempty h where
+    foldMap f = go mempty where
 
         go m h' = case pop h' of
             Nothing         -> m
