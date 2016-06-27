@@ -7,6 +7,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.Heap
     ( Heap
@@ -42,15 +43,11 @@ type family Min' (m :: Maybe Nat) (n :: Maybe Nat) :: Maybe Nat where
     Min' m         'Nothing  = m
     Min' ('Just m) ('Just n) = 'Just (Min m n)
 
-leqMin'' :: (l <=. m, l <=. n) => SNat l -> SNat' m -> SNat' n -> Dict (l <=. Min' m n)
-leqMin'' SZ     Nothing'       Nothing'       = Dict
-leqMin'' SZ     Nothing'       (Just' _)      = Dict
-leqMin'' SZ     (Just' _)      Nothing'       = Dict
-leqMin'' SZ     (Just' _)      (Just' _)      = Dict
-leqMin'' (SS _) Nothing'       Nothing'       = Dict
-leqMin'' (SS _) Nothing'       (Just' _)      = Dict
-leqMin'' (SS _) (Just' _)      Nothing'       = Dict
-leqMin'' (SS l) (Just' (SS m)) (Just' (SS n)) = case leqMin'' l (Just' m) (Just' n) of Dict -> Dict
+minProd' :: (l <=. m, l <=. n) => SNat l -> SNat' m -> SNat' n -> Dict (l <=. Min' m n)
+minProd' _ Nothing'  Nothing'  = Dict 
+minProd' _ (Just' _) Nothing'  = Dict
+minProd' _ Nothing'  (Just' _) = Dict
+minProd' l (Just' m) (Just' n) = using (minProd l m n) Dict
 
 data Heap' :: Maybe Nat -> Nat -> * -> * where
 
@@ -102,14 +99,14 @@ merge :: Heap'' p a -> Heap'' q a -> Heap'' (Min' p q) a
 merge (Heap'' Empty)                h'                           = h'
 merge h                             (Heap'' Empty)               = h
 merge h@(Heap'' (Tree p _ x ys zs)) h'@(Heap'' (Tree q _ _ _ _)) =
-    alternative (leqDec q p)
+    alternative (leqGeqDec q p)
         (using (minSymm p q) $ merge h' h) $
         let h'' = merge (Heap'' zs) h'
         in  case h'' of
             Heap'' Empty                 -> error "impossible branch"
             Heap'' h'''@(Tree _ r _ _ _) ->
-                using (leqMin p q `combine` leqMin'' p (priority zs) (Just' q)) $
-                    alternative (leqDec r $ rank ys)
+                using (minProd' p (priority zs) (Just' q)) $
+                    alternative (leqGeqDec r $ rank ys)
                         (Heap'' $ Tree p (SS r) x ys h''')
                         (Heap'' $ Tree p (SS $ rank ys) x h''' ys)
 
