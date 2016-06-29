@@ -21,6 +21,7 @@ library
                      , Data.Nat.Binary
                      , Data.Nat.Binary.Positive
                      , Data.Nat.Peano
+                     , Data.Ordered
   build-depends:       base >= 4.7 && < 5
                      , constraints
   default-language:    Haskell2010
