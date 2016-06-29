@@ -19,6 +19,7 @@ library
                      , Data.Logic
                      , Data.Nat
                      , Data.Nat.Binary
+                     , Data.Nat.Binary.Positive
                      , Data.Nat.Peano
   build-depends:       base >= 4.7 && < 5
                      , constraints
