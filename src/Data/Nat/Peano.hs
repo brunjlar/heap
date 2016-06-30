@@ -1,106 +1,65 @@
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 
 module Data.Nat.Peano
-    ( Nat(..)
-    , type (<=?)
-    , type (<)
-    , type (<=)
-    , type (>=)
-    , type (>)
-    , type Min
-    , SNat(..)
-    , SNAT(..)
-    , toNatural
-    , toSNAT
-    , leqGeqEq
-    , leqGeqDec
-    , leqGtDec
-    , geqMin
-    , minProd
-    , minSymm
+    ( Peano(..)
     ) where
 
 import Data.Constraint
 import Data.Logic
-import Numeric.Natural
+import Data.Ordered
 
-data Nat = Z | S Nat deriving (Show, Read, Eq)
+data Peano = Z | S Peano deriving (Show, Read, Eq)
 
-infix 4 <, <=, >=, >, <=?
+infix 4 ???
 
-type family (m :: Nat) <=? (n :: Nat) :: Bool where
-    'Z   <=? _    = 'True
-    'S _ <=? 'Z   = 'False
-    'S m <=? 'S n = m <=? n
+type family (m :: Peano) ??? (n :: Peano) :: Ordering where
+    'Z   ??? 'Z   = 'EQ
+    'Z   ??? _    = 'LT
+    'S _ ??? 'Z   = 'GT
+    'S m ??? 'S n = m ??? n
 
-type (m :: Nat) <= (n :: Nat) = (m <=? n) ~ 'True
+instance Ordered Peano where
 
-type (m :: Nat) >= (n :: Nat) = n <= m
+    type m ?? n = m ??? n
 
-type (m :: Nat) < (n :: Nat) = (n <=? m) ~ 'False
+    data Sing Peano n where
 
-type (m :: Nat) > (n :: Nat) = n < m
+        SZ :: Sing Peano 'Z
 
-type Min (m :: Nat) (n :: Nat) = IfThenElse (m <=? n) m n
+        SS :: Sing Peano n -> Sing Peano ('S n)
 
-data SNat :: Nat -> * where
+    dec SZ     SZ     = DecEQ Dict 
+    dec SZ     (SS _) = DecLT Dict
+    dec (SS _) SZ     = DecGT Dict 
+    dec (SS m) (SS n) = case dec m n of
+        DecLT Dict -> DecLT Dict
+        DecEQ Dict -> DecEQ Dict
+        DecGT Dict -> DecGT Dict
 
-    SZ :: SNat 'Z
+    symm SZ     SZ     = Dict
+    symm SZ     (SS _) = Dict
+    symm (SS _) SZ     = Dict
+    symm (SS m) (SS n) = using (symm m n) Dict
 
-    SS :: SNat n -> SNat ('S n)
+    eqSame SZ SZ = Dict
+    eqSame (SS m) (SS n) = using (eqSame m n) Dict
 
-data SNAT :: * where
+instance Nat Peano where
 
-    SNAT :: SNat n -> SNAT
+    type Zero Peano = 'Z
 
-toSNAT :: Natural -> SNAT
-toSNAT 0 = SNAT SZ
-toSNAT n = case toSNAT (pred n) of
-    SNAT n' -> SNAT (SS n')
+    type Succ Peano n = 'S n
 
-toNatural :: SNat n -> Natural
-toNatural SZ     = 0
-toNatural (SS n) = succ $ toNatural n
+    zero = SZ
 
-instance Show (SNat n) where
+    succ' = SS
 
-    show = show . toNatural
+    toSING 0 = SING SZ
+    toSING n = case toSING (pred n) of
+        SING n' -> SING (SS n')
 
-instance Show SNAT where
-
-    show (SNAT n) = show n
-
-leqGeqEq :: (m <= n, m >= n) => SNat m -> SNat n -> Dict (m ~ n)
-leqGeqEq SZ SZ = Dict
-leqGeqEq (SS m) (SS n) = using (leqGeqEq m n) Dict
-
-leqGeqDec :: SNat m -> SNat n -> Either (Dict (m <= n)) (Dict (m >= n))
-leqGeqDec SZ     _      = Left Dict
-leqGeqDec _      SZ     = Right Dict
-leqGeqDec (SS m) (SS n) = leqGeqDec m n
-
-leqGtDec :: SNat m -> SNat n -> Either (Dict (m <= n)) (Dict (m > n))
-leqGtDec SZ     _      = Left Dict
-leqGtDec (SS _) SZ     = Right Dict
-leqGtDec (SS m) (SS n) = leqGtDec m n
-
-geqMin :: (m >= n) => SNat m -> SNat n -> Dict (Min m n ~ n)
-geqMin m n = alternative (leqGtDec m n)
-    (using (leqGeqEq m n) Dict)
-    Dict
-
-minProd :: (l <= m, l <= n) => SNat l -> SNat m -> SNat n -> Dict (l <= Min m n)
-minProd _ m n = alternative (leqGeqDec m n)
-    Dict
-    (using (geqMin m n) Dict)
-
-minSymm :: SNat m -> SNat n -> Dict (Min m n ~ Min n m)
-minSymm m n = alternative (leqGeqDec m n)
-    (using (geqMin n m) Dict)
-    (using (geqMin m n) Dict)
+    toNatural SZ     = 0
+    toNatural (SS n) = succ $ toNatural n

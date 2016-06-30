@@ -8,11 +8,17 @@
 
 module Data.Nat.Binary.Positive
     ( Pos(..)
+    , toSINGP
+    , toNaturalP
+    , type SP
+    , one
+    , succP
     ) where
 
 import Data.Constraint
 import Data.Logic
 import Data.Ordered
+import Numeric.Natural
 
 data Pos = One | Even Pos | Odd Pos deriving (Show, Read, Eq)
 
@@ -38,7 +44,7 @@ type family (m :: Pos) ??? (n :: Pos) :: Ordering where
 
 instance Ordered Pos where 
 
-    type (??) m n = m ??? n
+    type m ?? n = m ??? n
 
     data Sing Pos n where
 
@@ -66,9 +72,8 @@ instance Ordered Pos where
 
     eqSame SOne      SOne      = Dict
     eqSame (SEven m) (SEven n) = using (eqSame m n) Dict
-    eqSame (SEven _) (SOdd _)  = error "impossible branch"
-    eqSame (SOdd _)  (SEven _) = error "impossible branch"
     eqSame (SOdd m)  (SOdd n)  = using (eqSame m n) Dict
+    eqSame _         _         = error "impossible branch"
 
     dec SOne      SOne      = DecEQ Dict
     dec SOne      (SEven _) = DecLT Dict
@@ -92,14 +97,27 @@ instance Ordered Pos where
         DecEQ Dict -> DecEQ Dict
         DecGT Dict -> DecGT Dict
 
-instance Nat Pos where
+toSINGP :: Natural -> Maybe (SING Pos)
+toSINGP 1 = Just (SING SOne)
+toSINGP n = case toSINGP (n `div` 2) of
+    Just (SING n') | even n    -> Just $ SING $ SEven n'
+                   | otherwise -> Just $ SING $ SOdd n'
+    Nothing                    -> error "impossible branch"
 
-    toSING 0 = error "zero is not positive"
-    toSING 1 = SING SOne
-    toSING n = case toSING (n `div` 2) of
-        SING n' | even n    -> SING $ SEven n'
-                | otherwise -> SING $ SOdd n'
+toNaturalP :: Sing Pos n -> Natural
+toNaturalP SOne      = 1
+toNaturalP (SEven n) = 2 * toNaturalP n
+toNaturalP (SOdd n)  = 1 + 2 * toNaturalP n
 
-    toNatural SOne      = 1
-    toNatural (SEven n) = 2 * toNatural n
-    toNatural (SOdd n)  = 1 + 2 * toNatural n
+type family SP (n :: Pos) :: Pos where
+    SP 'One      = 'Even 'One
+    SP ('Even n) = 'Odd n
+    SP ('Odd n)  = 'Even (SP n)
+
+one :: Sing Pos 'One
+one = SOne
+
+succP :: Sing Pos n -> Sing Pos (SP n)
+succP SOne      = SEven SOne
+succP (SEven n) = SOdd n
+succP (SOdd n)  = SEven (succP n)

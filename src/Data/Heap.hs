@@ -1,13 +1,13 @@
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Data.Heap
     ( Heap
@@ -19,83 +19,85 @@ module Data.Heap
     ) where
 
 import Data.Constraint
+import Data.Kind
 import Data.Logic
 import Data.Monoid     ((<>))
-import Data.Nat
+import Data.Ordered
 import Numeric.Natural
 
-data SNat' :: Maybe Nat -> * where
+data Sing' nat :: Maybe nat -> * where
 
-    Nothing' :: SNat' 'Nothing
+    Nothing' :: Sing' nat 'Nothing
 
-    Just' :: SNat n -> SNat' ('Just n)
+    Just' :: Sing nat n -> Sing' nat ('Just n)
 
-infix 4 <=??, <=.
+infix 4 <=?, <=.
 
-type family (m :: Nat) <=?? (n :: Maybe Nat) :: Bool where
-    _ <=?? 'Nothing = 'True
-    m <=?? 'Just n  = m <=? n
+type family (m :: nat) <=? (n :: Maybe nat) :: Bool where
+    _ <=? 'Nothing = 'True
+    m <=? 'Just n  = IsLeq (m ?? n)
 
-type (m :: Nat) <=. (n :: Maybe Nat) = (m <=?? n) ~ 'True 
+type (m :: nat) <=. (n :: Maybe nat) = (m <=? n) ~ 'True 
 
-type family Min' (m :: Maybe Nat) (n :: Maybe Nat) :: Maybe Nat where
+type family Min' (m :: Maybe nat) (n :: Maybe nat) :: Maybe nat where
     Min' 'Nothing  n         = n
     Min' m         'Nothing  = m
     Min' ('Just m) ('Just n) = 'Just (Min m n)
 
-minProd' :: (l <=. m, l <=. n) => SNat l -> SNat' m -> SNat' n -> Dict (l <=. Min' m n)
+minProd' :: (Ordered nat, l <=. m, l <=. n) => Sing nat l -> Sing' nat m -> Sing' nat n -> Dict (l <=. Min' m n)
 minProd' _ Nothing'  Nothing'  = Dict 
 minProd' _ (Just' _) Nothing'  = Dict
 minProd' _ Nothing'  (Just' _) = Dict
 minProd' l (Just' m) (Just' n) = using (minProd l m n) Dict
 
-data Heap' :: Maybe Nat -> Nat -> * -> * where
+data Heap' nat (p :: Maybe nat) (r :: nat) a where
 
-    Empty :: Heap' 'Nothing 'Z a
+    Empty :: Heap' nat 'Nothing (Zero nat) a
 
     Tree :: ( (p   <=. p')
             , (p   <=. p'')
             , (r'' <=  r') 
             )
-            => SNat p
-            -> SNat ('S r'')
+            => Sing nat p
+            -> Sing nat (Succ nat r'')
             -> a
-            -> Heap' p' r' a
-            -> Heap' p'' r'' a
-            -> Heap' ('Just p) ('S r'') a
+            -> Heap' nat p' r' a
+            -> Heap' nat p'' r'' a
+            -> Heap' nat ('Just p) (Succ nat r'') a
 
-deriving instance Show a => Show (Heap' p r a)
+deriving instance (Nat nat, Show a) => Show (Heap' nat p r a)
 
-deriving instance Functor (Heap' p r)
+deriving instance Functor (Heap' nat p r)
 
-rank :: Heap' p r a -> SNat r
-rank Empty            = SZ
+rank :: Nat nat => Heap' nat p r a -> Sing nat r
+rank Empty            = zero
 rank (Tree _ r _ _ _) = r
 
-priority :: Heap' p r a -> SNat' p
+priority :: Heap' nat p r a -> Sing' nat p
 priority Empty            = Nothing'
 priority (Tree p _ _ _ _) = Just' p
 
-data Heap'' :: Maybe Nat -> * -> * where
+data Heap'' nat (p :: Maybe nat) a where
 
-    Heap'' :: Heap' p r a -> Heap'' p a
+    Heap'' :: Heap' nat p r a -> Heap'' nat p a
 
-deriving instance Show a => Show (Heap'' p a)
+deriving instance (Nat nat, Show a) => Show (Heap'' nat p a)
 
-deriving instance Functor (Heap'' p)
+deriving instance Functor (Heap'' nat p)
 
-data Heap :: * -> * where
+data Heap nat a where
 
-    Heap :: Heap'' p a -> Heap a
+    Heap :: Heap'' nat p a -> Heap nat a
 
-deriving instance Show a => Show (Heap a)
+deriving instance (Nat nat, Show a) => Show (Heap nat a)
 
-deriving instance Functor Heap
+deriving instance Functor (Heap nat)
 
-singleton :: Natural -> a -> Heap a
-singleton p x = case toSNAT p of SNAT p' -> Heap $ Heap'' $ Tree p' (SS SZ) x Empty Empty
+singleton :: forall nat a. Nat nat => Natural -> a -> Heap nat a
+singleton p x = case toSING @nat p of SING p' -> let z = zero @nat
+                                                 in  using (sameEq z) $ Heap $ Heap'' $ Tree p' (succ' z) x Empty Empty
 
-merge :: Heap'' p a -> Heap'' q a -> Heap'' (Min' p q) a
+merge :: Nat nat => Heap'' nat p a -> Heap'' nat q a -> Heap'' nat (Min' p q) a
 merge (Heap'' Empty)                h'                           = h'
 merge h                             (Heap'' Empty)               = h
 merge h@(Heap'' (Tree p _ x ys zs)) h'@(Heap'' (Tree q _ _ _ _)) =
@@ -107,29 +109,29 @@ merge h@(Heap'' (Tree p _ x ys zs)) h'@(Heap'' (Tree q _ _ _ _)) =
             Heap'' h'''@(Tree _ r _ _ _) ->
                 using (minProd' p (priority zs) (Just' q)) $
                     alternative (leqGeqDec r $ rank ys)
-                        (Heap'' $ Tree p (SS r) x ys h''')
-                        (Heap'' $ Tree p (SS $ rank ys) x h''' ys)
+                        (Heap'' $ Tree p (succ' r) x ys h''')
+                        (Heap'' $ Tree p (succ' $ rank ys) x h''' ys)
 
-instance Monoid (Heap a) where
+instance Nat nat => Monoid (Heap nat a) where
 
     mempty = Heap $ Heap'' Empty
 
     Heap h `mappend` Heap h' = Heap $ merge h h'
 
-toHeap :: Foldable f => f (Natural, a) -> Heap a
+toHeap :: (Nat nat, Foldable f) => f (Natural, a) -> Heap nat a
 toHeap = foldMap (uncurry singleton)
 
-insert :: Natural -> a -> Heap a -> Heap a
+insert :: Nat nat => Natural -> a -> Heap nat a -> Heap nat a
 insert p = mappend . singleton p
 
-pop :: Heap a -> Maybe (Natural, a, Heap a)
+pop :: Nat nat => Heap nat a -> Maybe (Natural, a, Heap nat a)
 pop (Heap (Heap'' Empty))              = Nothing
 pop (Heap (Heap'' (Tree p _ x ys zs))) = Just (toNatural p, x, Heap (Heap'' ys) <> Heap (Heap'' zs)) 
 
-peek :: Heap a -> Maybe (Natural, a)
+peek :: Nat nat => Heap nat a -> Maybe (Natural, a)
 peek h = pop h >>= \(p, x, _) -> return (p, x)
 
-instance Foldable Heap where
+instance Nat nat => Foldable (Heap nat) where
 
     foldMap f = go mempty where
 

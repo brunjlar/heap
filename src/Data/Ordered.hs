@@ -11,6 +11,7 @@ module Data.Ordered
     , Nat(..)
     , SING(..)
     , Dec(..)
+    , type IsLeq
     , type InvOrd
     , type (<), type (<=), type (>=), type (>)
     , type Min
@@ -61,6 +62,14 @@ class Ordered a where
     dec :: Sing a m -> Sing a n -> Dec m n
 
 class Ordered nat => Nat nat where
+
+    type Zero nat :: nat
+
+    type Succ nat (n :: nat) :: nat
+
+    zero :: Sing nat (Zero nat)
+
+    succ' :: Sing nat n -> Sing nat (Succ nat n)
 
     toSING :: Natural -> SING nat
 
