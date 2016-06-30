@@ -10,4 +10,4 @@ To encode those invariants, I abstract the concept of *type-level natural number
 - simple, *unary* "Peano" numbers, which are of course highly inefficient, but easier to understand and
 - *binary* numbers, which are more efficient, but also more complicated.
 
-Using the binary encoding of type-level natural numbers, I can quickly sort a list of 10000 elements.
+Using the binary encoding of type-level natural numbers, I can quickly sort a list of 50000 elements.
