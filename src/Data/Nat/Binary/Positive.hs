@@ -20,7 +20,7 @@ import Data.Logic
 import Data.Ordered
 import Numeric.Natural
 
-data Pos = One | Even Pos | Odd Pos deriving (Show, Read, Eq)
+data Pos = One | Even !Pos | Odd !Pos deriving (Show, Read, Eq)
 
 type family EO (o :: Ordering) :: Ordering where
     EO 'LT = 'LT
@@ -69,11 +69,13 @@ instance Ordered Pos where
         DecEQ Dict -> using (sameEq m) Dict
         DecGT Dict -> using (symm n m) Dict
     symm (SOdd m)  (SOdd n)  = using (symm m n) Dict
+    {-# INLINE symm #-}
 
     eqSame SOne      SOne      = Dict
     eqSame (SEven m) (SEven n) = using (eqSame m n) Dict
     eqSame (SOdd m)  (SOdd n)  = using (eqSame m n) Dict
     eqSame _         _         = error "impossible branch"
+    {-# INLINE eqSame #-}
 
     dec SOne      SOne      = DecEQ Dict
     dec SOne      (SEven _) = DecLT Dict
@@ -96,6 +98,7 @@ instance Ordered Pos where
         DecLT Dict -> DecLT Dict
         DecEQ Dict -> DecEQ Dict
         DecGT Dict -> DecGT Dict
+    {-# INLINE dec #-}
 
 toSINGP :: Natural -> Maybe (SING Pos)
 toSINGP 1 = Just (SING SOne)
@@ -103,11 +106,13 @@ toSINGP n = case toSINGP (n `div` 2) of
     Just (SING n') | even n    -> Just $ SING $ SEven n'
                    | otherwise -> Just $ SING $ SOdd n'
     Nothing                    -> error "impossible branch"
+{-# INLINE toSINGP #-}
 
 toNaturalP :: Sing Pos n -> Natural
 toNaturalP SOne      = 1
 toNaturalP (SEven n) = 2 * toNaturalP n
 toNaturalP (SOdd n)  = 1 + 2 * toNaturalP n
+{-# INLINE toNaturalP #-}
 
 type family SP (n :: Pos) :: Pos where
     SP 'One      = 'Even 'One
@@ -116,8 +121,10 @@ type family SP (n :: Pos) :: Pos where
 
 one :: Sing Pos 'One
 one = SOne
+{-# INLINE one #-}
 
 succP :: Sing Pos n -> Sing Pos (SP n)
 succP SOne      = SEven SOne
 succP (SEven n) = SOdd n
 succP (SOdd n)  = SEven (succP n)
+{-# INLINE succP #-}

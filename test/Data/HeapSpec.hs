@@ -4,10 +4,12 @@
 module Data.HeapSpec (spec) where
 
 import Test.Hspec
-import Data.Foldable   (toList)
+import Data.Foldable     (toList)
 import Data.Heap
-import Data.Nat.Binary (Bin)
-import Data.Nat.Peano  (Peano)
+import Data.MyPrelude
+import Data.Nat.Binary   (Bin)
+import Data.Nat.Peano    (Peano)
+import Data.Utils.Random (shuffleR)
 import Numeric.Natural
 
 spec :: Spec
@@ -50,11 +52,4 @@ binSpec = describe "Bin" $ do
         toList (toHeap @Bin xs) `shouldBe` [1 .. n]
         
 shuffle :: Natural -> [Natural]
-shuffle n = go [] [1 .. n] where
-
-    go xs ys
-        | null ys   = xs
-        | otherwise = let (x : zs) = take 7 ys
-                          zs'      = drop 7 ys
-                          ys'      = zs' ++ zs
-                      in  go (x : xs) ys'
+shuffle n = evalRand (shuffleR [1 .. n]) $ mkStdGen 1234567

@@ -13,7 +13,7 @@ import Data.Logic
 import Data.Nat.Binary.Positive
 import Data.Ordered
 
-data Bin = Z | P Pos deriving (Show, Read, Eq)
+data Bin = Z | P !Pos deriving (Show, Read, Eq)
 
 infix 4 ???
 
@@ -40,14 +40,17 @@ instance Ordered Bin where
         DecLT Dict -> DecLT Dict
         DecEQ Dict -> DecEQ Dict
         DecGT Dict -> DecGT Dict
+    {-# INLINE dec #-}
 
     symm SZ     SZ     = Dict
     symm SZ     (SP _) = Dict
     symm (SP _) SZ     = Dict
     symm (SP m) (SP n) = using (symm m n) Dict
+    {-# INLINE symm #-}
 
     eqSame SZ SZ = Dict
     eqSame (SP m) (SP n) = using (eqSame m n) Dict
+    {-# INLINE eqSame #-}
 
 type family S (n :: Bin) :: Bin where
     S 'Z     = 'P 'One
@@ -60,14 +63,18 @@ instance Nat Bin where
     type Succ Bin n = S n
 
     zero = SZ
+    {-# INLINE zero #-}
 
     succ' SZ     = SP one
     succ' (SP n) = SP (succP n)
+    {-# INLINE succ' #-}
 
     toSING 0 = SING SZ
     toSING n = case toSINGP n of
         Just (SING n') -> SING (SP n')
         Nothing        -> error "impossible branch"
+    {-# INLINE toSING #-}
 
     toNatural SZ     = 0
     toNatural (SP n) = toNaturalP n
+    {-# INLINE toNatural #-}

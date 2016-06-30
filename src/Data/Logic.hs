@@ -18,10 +18,12 @@ combine Dict Dict = Dict
 
 using :: Dict a -> (a => b) -> b
 using d x = case d of Dict -> x
+{-# INLINE using #-}
 
 alternative :: Either (Dict a) (Dict b) -> (a => c) -> (b => c) -> c
 alternative (Left  Dict) x _ = x
 alternative (Right Dict) _ y = y
+{-# INLINE alternative #-}
 
 type family IfThenElse (a :: Bool) (b :: k) (c :: k) :: k where
     IfThenElse 'True  b _ = b

@@ -11,7 +11,7 @@ import Data.Constraint
 import Data.Logic
 import Data.Ordered
 
-data Peano = Z | S Peano deriving (Show, Read, Eq)
+data Peano = Z | S !Peano deriving (Show, Read, Eq)
 
 infix 4 ???
 
@@ -38,14 +38,17 @@ instance Ordered Peano where
         DecLT Dict -> DecLT Dict
         DecEQ Dict -> DecEQ Dict
         DecGT Dict -> DecGT Dict
+    {-# INLINE dec #-}
 
     symm SZ     SZ     = Dict
     symm SZ     (SS _) = Dict
     symm (SS _) SZ     = Dict
     symm (SS m) (SS n) = using (symm m n) Dict
+    {-# INLINE symm #-}
 
     eqSame SZ SZ = Dict
     eqSame (SS m) (SS n) = using (eqSame m n) Dict
+    {-# INLINE eqSame #-}
 
 instance Nat Peano where
 
@@ -54,12 +57,16 @@ instance Nat Peano where
     type Succ Peano n = 'S n
 
     zero = SZ
+    {-# INLINE zero #-}
 
     succ' = SS
+    {-# INLINE succ' #-}
 
     toSING 0 = SING SZ
     toSING n = case toSING (pred n) of
         SING n' -> SING (SS n')
+    {-# INLINE toSING #-}
 
     toNatural SZ     = 0
     toNatural (SS n) = succ $ toNatural n
+    {-# INLINE toNatural #-}

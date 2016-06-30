@@ -58,11 +58,11 @@ data Heap' nat (p :: Maybe nat) (r :: nat) a where
             , (p   <=. p'')
             , (r'' <=  r') 
             )
-            => Sing nat p
-            -> Sing nat (Succ nat r'')
-            -> a
-            -> Heap' nat p' r' a
-            -> Heap' nat p'' r'' a
+            => !(Sing nat p)
+            -> !(Sing nat (Succ nat r''))
+            -> !a
+            -> !(Heap' nat p' r' a)
+            -> !(Heap' nat p'' r'' a)
             -> Heap' nat ('Just p) (Succ nat r'') a
 
 deriving instance (Nat nat, Show a) => Show (Heap' nat p r a)
@@ -96,6 +96,7 @@ deriving instance Functor (Heap nat)
 singleton :: forall nat a. Nat nat => Natural -> a -> Heap nat a
 singleton p x = case toSING @nat p of SING p' -> let z = zero @nat
                                                  in  using (sameEq z) $ Heap $ Heap'' $ Tree p' (succ' z) x Empty Empty
+{-# INLINE singleton #-}
 
 merge :: Nat nat => Heap'' nat p a -> Heap'' nat q a -> Heap'' nat (Min' p q) a
 merge (Heap'' Empty)                h'                           = h'
@@ -123,13 +124,16 @@ toHeap = foldMap (uncurry singleton)
 
 insert :: Nat nat => Natural -> a -> Heap nat a -> Heap nat a
 insert p = mappend . singleton p
+{-# INLINE insert #-}
 
 pop :: Nat nat => Heap nat a -> Maybe (Natural, a, Heap nat a)
 pop (Heap (Heap'' Empty))              = Nothing
 pop (Heap (Heap'' (Tree p _ x ys zs))) = Just (toNatural p, x, Heap (Heap'' ys) <> Heap (Heap'' zs)) 
+{-# INLINE pop #-}
 
 peek :: Nat nat => Heap nat a -> Maybe (Natural, a)
 peek h = pop h >>= \(p, x, _) -> return (p, x)
+{-# INLINE peek #-}
 
 instance Nat nat => Foldable (Heap nat) where
 

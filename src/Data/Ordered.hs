@@ -100,6 +100,7 @@ sameEq :: Ordered a => Sing a n -> Dict ((n ?? n) ~ 'EQ)
 sameEq n = using (symm n n) $ case dec n n of
     DecEQ d -> d
     _       -> error "impossible branch"
+{-# INLINE sameEq #-}
 
 type Min (m :: a) (n :: a) = IfThenElse (IsLeq (m ?? n)) m n
 
@@ -107,29 +108,35 @@ leqGeqEq :: (Ordered a, m <= n, m >= n) => Sing a m -> Sing a n -> Dict (m ~ n)
 leqGeqEq m n = case dec m n of
     DecEQ Dict -> using (eqSame m n) Dict
     _          -> error "impossible branch"
+{-# INLINE leqGeqEq #-}
 
 leqGtDec :: Ordered a => Sing a m -> Sing a n -> Either (Dict (m <= n)) (Dict (m > n))
 leqGtDec m n = case dec m n of
     DecLT Dict -> Left Dict
     DecEQ Dict -> using (sameEq m) $ Left Dict
     DecGT Dict -> Right Dict
+{-# INLINE leqGtDec #-}
 
 leqGeqDec :: Ordered a => Sing a m -> Sing a n -> Either (Dict (m <= n)) (Dict (m >= n))
 leqGeqDec m n = alternative (leqGtDec m n) (Left Dict) (Right Dict)
+{-# INLINE leqGeqDec #-}
 
 geqMin :: (Ordered a, m >= n) => Sing a m -> Sing a n -> Dict (Min m n ~ n)
 geqMin m n = case dec m n of
     DecEQ Dict -> using (eqSame m n) Dict
     DecGT Dict -> using (symm n m) Dict
     _          -> error "impossible branch"
+{-# INLINE geqMin #-}
 
 minProd :: (Ordered a, l <= m, l <= n) 
            => Sing a l -> Sing a m -> Sing a n -> Dict (l <= Min m n)
 minProd _ m n = alternative (leqGeqDec m n)
     Dict
     (using (geqMin m n) Dict)
+{-# INLINE minProd #-}
 
 minSymm :: Ordered a => Sing a m -> Sing a n -> Dict (Min m n ~ Min n m)
 minSymm m n = alternative (leqGeqDec m n)
     (using (geqMin n m) Dict)
     (using (geqMin m n) Dict)
+{-# INLINE minSymm #-}
