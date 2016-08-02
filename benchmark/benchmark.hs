@@ -19,7 +19,7 @@ main = defaultMain
 
   where
 
-    ls = [10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120]
+    ls = [250, 500 .. 2500]
 
 sort' :: forall nat. Nat nat => Proxy nat -> [Natural] -> [Natural]
 sort' Proxy = toList . toHeap @nat . map (\x -> (x, x))
@@ -27,16 +27,14 @@ sort' Proxy = toList . toHeap @nat . map (\x -> (x, x))
 sortBench :: Nat nat => Proxy nat -> String -> [Natural] -> Benchmark
 sortBench p name xs = bench name $ nf (sort' p) xs
 
-sortBenchEnv :: Nat nat => Proxy nat -> Natural -> String -> Benchmark
-sortBenchEnv p len name = env (shuffle len) $ sortBench p name
+sortBenchEnv :: Nat nat => Proxy nat -> Natural -> Benchmark
+sortBenchEnv p len = env (shuffle len) $ sortBench p $ show len
 
 sortBenchEnvPeano :: Natural -> Benchmark
-sortBenchEnvPeano len =
-    sortBenchEnv (Proxy :: Proxy Peano) len $ "Peano-" ++ show len
+sortBenchEnvPeano = sortBenchEnv (Proxy :: Proxy Peano)
 
 sortBenchEnvBin :: Natural -> Benchmark
-sortBenchEnvBin len =
-    sortBenchEnv (Proxy :: Proxy Bin) len $ "Bin-" ++ show len
+sortBenchEnvBin = sortBenchEnv (Proxy :: Proxy Bin)
 
 shuffle :: Natural -> IO [Natural]
 shuffle n = return $ map fromIntegral $  evalRand (replicateM (fromIntegral n) $ getRandomR (1 :: Int, 100)) $ mkStdGen 1234567
