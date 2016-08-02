@@ -51,6 +51,30 @@ test-suite heap-test
   ghc-options:         -O -Wall
   default-language:    Haskell2010
 
+benchmark heap-bench
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmark
+  other-modules:       Data.MyPrelude
+                     , Data.Utils.List
+                     , Data.Utils.Random
+                     , Data.Utils.Stack
+                     , Data.Utils.Traversable
+  main-is:             benchmark.hs
+  build-depends:       base >= 4.7 && < 5
+                     , array
+                     , criterion
+                     , deepseq
+                     , directory
+                     , filepath
+                     , heap
+                     , lens
+                     , MonadRandom
+                     , mtl
+                     , STMonadTrans
+                     , transformers
+  ghc-options:         -O -Wall
+  default-language:    Haskell2010
+
 source-repository head
   type:     git
   location: https://github.com/brunjlar/heap
