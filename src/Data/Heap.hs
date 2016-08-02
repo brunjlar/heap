@@ -142,6 +142,6 @@ instance Nat nat => Foldable (Heap nat) where
 
     foldMap f = go mempty where
 
-        go m h' = case pop h' of
+        go m h = case pop h of
             Nothing         -> m
-            Just (_, x, h'') -> go (m <> f x) h''
+            Just (_, x, h') -> go (m <> f x) h'

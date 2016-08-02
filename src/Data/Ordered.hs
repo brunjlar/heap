@@ -122,6 +122,7 @@ ltGeqDec :: Ordered a => Sing a m -> Sing a n -> Either (Dict (m < n)) (Dict (m 
 ltGeqDec m n = case leqGtDec n m of
     Left Dict  -> Right Dict
     Right Dict -> Left Dict
+{-# INLINE ltGeqDec #-}
 
 leqGeqDec :: Ordered a => Sing a m -> Sing a n -> Either (Dict (m <= n)) (Dict (m >= n))
 leqGeqDec m n = alternative (leqGtDec m n) (Left Dict) (Right Dict)
