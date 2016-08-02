@@ -10,12 +10,15 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Data.Heap
-    ( Heap
+    ( module Data.Ordered
+    , module Numeric.Natural
+    , Heap
     , singleton
     , insert
     , toHeap
     , pop
     , peek
+    , (<>)
     ) where
 
 import Data.Constraint
@@ -37,7 +40,7 @@ type family (m :: nat) <=? (n :: Maybe nat) :: Bool where
     _ <=? 'Nothing = 'True
     m <=? 'Just n  = IsLeq (m ?? n)
 
-type (m :: nat) <=. (n :: Maybe nat) = (m <=? n) ~ 'True 
+type (m :: nat) <=. (n :: Maybe nat) = (m <=? n) ~ 'True
 
 type family Min' (m :: Maybe nat) (n :: Maybe nat) :: Maybe nat where
     Min' 'Nothing  n         = n
@@ -45,7 +48,7 @@ type family Min' (m :: Maybe nat) (n :: Maybe nat) :: Maybe nat where
     Min' ('Just m) ('Just n) = 'Just (Min m n)
 
 minProd' :: (Ordered nat, l <=. m, l <=. n) => Sing nat l -> Sing' nat m -> Sing' nat n -> Dict (l <=. Min' m n)
-minProd' _ Nothing'  Nothing'  = Dict 
+minProd' _ Nothing'  Nothing'  = Dict
 minProd' _ (Just' _) Nothing'  = Dict
 minProd' _ Nothing'  (Just' _) = Dict
 minProd' l (Just' m) (Just' n) = using (minProd l m n) Dict
@@ -56,7 +59,7 @@ data Heap' nat (p :: Maybe nat) (r :: nat) a where
 
     Tree :: ( (p   <=. p')
             , (p   <=. p'')
-            , (r'' <=  r') 
+            , (r'' <=  r')
             )
             => !(Sing nat p)
             -> !(Sing nat (Succ nat r''))
@@ -102,14 +105,14 @@ merge :: Nat nat => Heap'' nat p a -> Heap'' nat q a -> Heap'' nat (Min' p q) a
 merge (Heap'' Empty)                h'                           = h'
 merge h                             (Heap'' Empty)               = h
 merge h@(Heap'' (Tree p _ x ys zs)) h'@(Heap'' (Tree q _ _ _ _)) =
-    alternative (leqGeqDec q p)
+    alternative (ltGeqDec q p)
         (using (minSymm p q) $ merge h' h) $
         let h'' = merge (Heap'' zs) h'
         in  case h'' of
             Heap'' Empty                 -> error "impossible branch"
             Heap'' h'''@(Tree _ r _ _ _) ->
                 using (minProd' p (priority zs) (Just' q)) $
-                    alternative (leqGeqDec r $ rank ys)
+                    alternative (leqGtDec r $ rank ys)
                         (Heap'' $ Tree p (succ' r) x ys h''')
                         (Heap'' $ Tree p (succ' $ rank ys) x h''' ys)
 
@@ -128,7 +131,7 @@ insert p = mappend . singleton p
 
 pop :: Nat nat => Heap nat a -> Maybe (Natural, a, Heap nat a)
 pop (Heap (Heap'' Empty))              = Nothing
-pop (Heap (Heap'' (Tree p _ x ys zs))) = Just (toNatural p, x, Heap (Heap'' ys) <> Heap (Heap'' zs)) 
+pop (Heap (Heap'' (Tree p _ x ys zs))) = Just (toNatural p, x, Heap (Heap'' ys) <> Heap (Heap'' zs))
 {-# INLINE pop #-}
 
 peek :: Nat nat => Heap nat a -> Maybe (Natural, a)

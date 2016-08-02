@@ -7,7 +7,7 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 module Data.Ordered
-    ( Ordered(..) 
+    ( Ordered(..)
     , Nat(..)
     , SING(..)
     , Dec(..)
@@ -18,6 +18,7 @@ module Data.Ordered
     , sameEq
     , leqGeqEq
     , leqGtDec
+    , ltGeqDec
     , leqGeqDec
     , geqMin
     , minProd
@@ -25,7 +26,7 @@ module Data.Ordered
     ) where
 
 import Data.Constraint
-import Data.Kind 
+import Data.Kind
 import Data.Logic
 import Numeric.Natural
 
@@ -37,11 +38,11 @@ data SING :: * -> * where
 
 data Dec (m :: a) (n :: a) where
 
-    DecLT :: Dict (m < n) -> Dec m n 
+    DecLT :: Dict (m < n) -> Dec m n
 
-    DecEQ :: Dict ((m ?? n) ~ 'EQ) -> Dec m n 
+    DecEQ :: Dict ((m ?? n) ~ 'EQ) -> Dec m n
 
-    DecGT :: Dict (m > n) -> Dec m n 
+    DecGT :: Dict (m > n) -> Dec m n
 
 type family InvOrd (o :: Ordering) :: Ordering where
 
@@ -52,7 +53,7 @@ type family InvOrd (o :: Ordering) :: Ordering where
 class Ordered a where
 
     type (??) (m :: a) (n :: a) :: Ordering
-    
+
     data Sing a :: a -> *
 
     symm :: Sing a m -> Sing a n -> Dict ((n ?? m) ~ InvOrd (m ?? n))
@@ -117,6 +118,11 @@ leqGtDec m n = case dec m n of
     DecGT Dict -> Right Dict
 {-# INLINE leqGtDec #-}
 
+ltGeqDec :: Ordered a => Sing a m -> Sing a n -> Either (Dict (m < n)) (Dict (m >= n))
+ltGeqDec m n = case leqGtDec n m of
+    Left Dict  -> Right Dict
+    Right Dict -> Left Dict
+
 leqGeqDec :: Ordered a => Sing a m -> Sing a n -> Either (Dict (m <= n)) (Dict (m >= n))
 leqGeqDec m n = alternative (leqGtDec m n) (Left Dict) (Right Dict)
 {-# INLINE leqGeqDec #-}
@@ -128,7 +134,7 @@ geqMin m n = case dec m n of
     _          -> error "impossible branch"
 {-# INLINE geqMin #-}
 
-minProd :: (Ordered a, l <= m, l <= n) 
+minProd :: (Ordered a, l <= m, l <= n)
            => Sing a l -> Sing a m -> Sing a n -> Dict (l <= Min m n)
 minProd _ m n = alternative (leqGeqDec m n)
     Dict
