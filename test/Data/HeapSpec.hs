@@ -10,7 +10,6 @@ import Data.MyPrelude
 import Data.Nat.Binary   (Bin)
 import Data.Nat.Peano    (Peano)
 import Data.Utils.Random (shuffleR)
-import Numeric.Natural
 
 spec :: Spec
 spec = do
@@ -20,7 +19,7 @@ spec = do
 peanoSpec :: Spec
 peanoSpec = describe "Peano" $ do
 
-    it "should sort a short list" $ do 
+    it "should sort a short list" $ do
 
         let xs = [(2, 'a'), (5, 'e'), (1, 'H'), (4, 'k'), (7, 'l'), (6, 'l'), (3, 's')]
         toList (toHeap @Peano xs) `shouldBe` "Haskell"
@@ -34,7 +33,7 @@ peanoSpec = describe "Peano" $ do
 binSpec :: Spec
 binSpec = describe "Bin" $ do
 
-    it "should sort a short list" $ do 
+    it "should sort a short list" $ do
 
         let xs = [(2, 'a'), (5, 'e'), (1, 'H'), (4, 'k'), (7, 'l'), (6, 'l'), (3, 's')]
         toList (toHeap @Bin xs) `shouldBe` "Haskell"
@@ -50,7 +49,7 @@ binSpec = describe "Bin" $ do
         let n  = 10000
             xs = [(x, x) | x <- shuffle n]
         toList (toHeap @Bin xs) `shouldBe` [1 .. n]
-        
+
     it "should sort a 50000-element list" $ do
 
         let n  = 50000
