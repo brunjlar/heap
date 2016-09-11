@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK show-extensions #-}
+
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -5,6 +7,19 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+{-|
+Module      : Data.Nat.Binary.Positive
+Description : positive binary natural numbers
+Copyright   : (c) Lars Brünjes, 2016
+License     : MIT
+Maintainer  : brunjlar@gmail.com
+Stability   : experimental
+Portability : portable
+
+Defines positive binary natural numbers, i.e. positive natural numbers with binary representation.
+They are more efficient than Peano natural numbers, but also more complicated.
+-}
 
 module Data.Nat.Binary.Positive
     ( Pos(..)
@@ -20,7 +35,13 @@ import Data.Logic
 import Data.Ordered
 import Numeric.Natural
 
-data Pos = One | Even !Pos | Odd !Pos deriving (Show, Read, Eq)
+-- | Positive binary natural numbers. @One = 1@, @Even One = 2@, @Odd One = 3@,
+--   @Even Even One = 4@, @Odd Even One = 5@, @Even Odd One = 6@, @Odd Odd One = 7@ and so on.
+data Pos =
+      One       -- ^ one
+    | Even !Pos -- ^ times two
+    | Odd !Pos  -- ^ times two plus one
+    deriving (Show, Read, Eq)
 
 type family EO (o :: Ordering) :: Ordering where
     EO 'LT = 'LT
@@ -42,7 +63,7 @@ type family (m :: Pos) ??? (n :: Pos) :: Ordering where
     'Odd m  ??? 'Even n = OE (m ??? n)
     'Odd m  ??? 'Odd n  = m ??? n
 
-instance Ordered Pos where 
+instance Ordered Pos where
 
     type m ?? n = m ??? n
 
@@ -100,6 +121,7 @@ instance Ordered Pos where
         DecGT Dict -> DecGT Dict
     {-# INLINE dec #-}
 
+-- | Tries to convert a 'Natural' to a singleton positive binary number. For zero, this results in 'Nothing'.
 toSINGP :: Natural -> Maybe (SING Pos)
 toSINGP 1 = Just (SING SOne)
 toSINGP n = case toSINGP (n `div` 2) of
@@ -108,21 +130,25 @@ toSINGP n = case toSINGP (n `div` 2) of
     Nothing                    -> error "impossible branch"
 {-# INLINE toSINGP #-}
 
+-- | Converts a singleton positive natural number to 'Natural'.
 toNaturalP :: Sing Pos n -> Natural
 toNaturalP SOne      = 1
 toNaturalP (SEven n) = 2 * toNaturalP n
 toNaturalP (SOdd n)  = 1 + 2 * toNaturalP n
 {-# INLINE toNaturalP #-}
 
+-- | Type level successor function.
 type family SP (n :: Pos) :: Pos where
     SP 'One      = 'Even 'One
     SP ('Even n) = 'Odd n
     SP ('Odd n)  = 'Even (SP n)
 
+-- | The singleton number one.
 one :: Sing Pos 'One
 one = SOne
 {-# INLINE one #-}
 
+-- | Successor function for singletons.
 succP :: Sing Pos n -> Sing Pos (SP n)
 succP SOne      = SEven SOne
 succP (SEven n) = SOdd n

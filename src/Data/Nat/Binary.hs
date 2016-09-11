@@ -1,11 +1,26 @@
+{-# OPTIONS_HADDOCK show-extensions #-}
+
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 
+{-|
+Module      : Data.Nat.Binary
+Description : binary natural numbers
+Copyright   : (c) Lars Brünjes, 2016
+License     : MIT
+Maintainer  : brunjlar@gmail.com
+Stability   : experimental
+Portability : portable
+
+Defines binary natural numbers, i.e. natural numbers with binary representation.
+They are more efficient than Peano natural numbers, but also more complicated.
+-}
+
 module Data.Nat.Binary
-    ( Bin(..) 
+    ( Bin(..)
     ) where
 
 import Data.Constraint
@@ -13,7 +28,11 @@ import Data.Logic
 import Data.Nat.Binary.Positive
 import Data.Ordered
 
-data Bin = Z | P !Pos deriving (Show, Read, Eq)
+-- | Binary natural numbers.
+data Bin =
+      Z      -- ^ zero
+    | P !Pos -- ^ positive
+    deriving (Show, Read, Eq)
 
 infix 4 ???
 

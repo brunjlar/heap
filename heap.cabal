@@ -1,6 +1,6 @@
 name:                heap
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            Dependently Typed Heaps
 description:         Please see README.md
 homepage:            https://github.com/brunjlar/heap#readme
 license:             MIT

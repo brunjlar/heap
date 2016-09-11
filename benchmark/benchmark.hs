@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK show-extensions #-}
+
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 

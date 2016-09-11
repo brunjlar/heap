@@ -1,7 +1,22 @@
+{-# OPTIONS_HADDOCK show-extensions #-}
+
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+
+{-|
+Module      : Data.Nat.Peano
+Description : Peano natural numbers
+Copyright   : (c) Lars Brünjes, 2016
+License     : MIT
+Maintainer  : brunjlar@gmail.com
+Stability   : experimental
+Portability : portable
+
+Defines Peano natural numbers, i.e. natural numbers with unary representation.
+They are far less efficient than binary natural numbers, but much easier to reason about.
+-}
 
 module Data.Nat.Peano
     ( Peano(..)
@@ -11,7 +26,11 @@ import Data.Constraint
 import Data.Logic
 import Data.Ordered
 
-data Peano = Z | S !Peano deriving (Show, Read, Eq)
+-- | Peano natural numbers: @Z = 0@, @S Z = 1@, @S S Z = 2@ and so on.
+data Peano =
+      Z        -- ^ zero
+    | S !Peano -- ^ successor
+    deriving (Show, Read, Eq)
 
 infix 4 ???
 
@@ -31,9 +50,9 @@ instance Ordered Peano where
 
         SS :: Sing Peano n -> Sing Peano ('S n)
 
-    dec SZ     SZ     = DecEQ Dict 
+    dec SZ     SZ     = DecEQ Dict
     dec SZ     (SS _) = DecLT Dict
-    dec (SS _) SZ     = DecGT Dict 
+    dec (SS _) SZ     = DecGT Dict
     dec (SS m) (SS n) = case dec m n of
         DecLT Dict -> DecLT Dict
         DecEQ Dict -> DecEQ Dict
